@@ -13,20 +13,54 @@ namespace TrybeHotel.Services
         private readonly TokenOptions _tokenOptions;
         public TokenGenerator()
         {
-           _tokenOptions = new TokenOptions {
+            _tokenOptions = new TokenOptions
+            {
                 Secret = "4d82a63bbdc67c1e4784ed6587f3730c",
                 ExpiresDay = 1
-           };
+            };
 
         }
         public string Generate(UserDto user)
         {
-            throw new NotImplementedException();
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var claims = AddClaims(user);
+
+            if (claims != null)
+            {
+                var tokenDescriptor = new SecurityTokenDescriptor
+                {
+                    Subject = new ClaimsIdentity(claims),
+                    SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(Encoding.ASCII.GetBytes(_tokenOptions.Secret)), SecurityAlgorithms.HmacSha256Signature),
+                    Expires = DateTime.Now.AddDays(_tokenOptions.ExpiresDay)
+                };
+                var token = tokenHandler.CreateToken(tokenDescriptor);
+                return tokenHandler.WriteToken(token);
+
+            }
+            else
+            {
+                throw new ApplicationException("Nenhuma reivindicação válida foi fornecida.");
+            }
         }
 
         private ClaimsIdentity AddClaims(UserDto user)
         {
-            throw new NotImplementedException();
+            var claims = new ClaimsIdentity();
+            if (user.Email != null)
+            {
+                claims.AddClaim(new Claim(ClaimTypes.Email, user.Email));
+            }
+            else
+            {
+                throw new ApplicationException("O e-mail do usuário é nulo.");
+            }
+            claims.AddClaim(new Claim(ClaimTypes.Email, user.Email));
+            if (user.UserType == "admin")
+            {
+                claims.AddClaim(new Claim(ClaimTypes.Role, "admin"));
+            }
+
+            return claims;
         }
     }
 }
